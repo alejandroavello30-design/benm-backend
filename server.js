@@ -75,6 +75,16 @@ app.get('/token', async (req, res) => {
             return res.status(401).json({ error: 'Código de equipo incorrecto.' });
         }
 
+        // Crear el canal antes de consultar participantes. LiveKit devuelve 404 si el canal aún no existe.
+        const rooms = await api.room.listRooms([roomName]);
+        if (rooms.length === 0) {
+            await api.room.createRoom({
+                name: roomName,
+                maxParticipants: MAX_PARTICIPANTS,
+                emptyTimeout: 10 * 60
+            });
+        }
+
         const participants = await api.room.listParticipants(roomName);
 
         if (participants.some((p) => p.identity === name)) {
@@ -83,17 +93,6 @@ app.get('/token', async (req, res) => {
 
         if (participants.length >= MAX_PARTICIPANTS) {
             return res.status(403).json({ error: `El canal está lleno (${MAX_PARTICIPANTS} integrantes).` });
-        }
-
-        // Create/configure the room on first use. The LiveKit server also
-        // enforces maxParticipants at the room level.
-        const rooms = await api.room.listRooms([roomName]);
-        if (rooms.length === 0) {
-            await api.room.createRoom({
-                name: roomName,
-                maxParticipants: MAX_PARTICIPANTS,
-                emptyTimeout: 10 * 60
-            });
         }
 
         const token = new AccessToken(
