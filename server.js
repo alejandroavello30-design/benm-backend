@@ -157,12 +157,30 @@ function publicFileInfo(resource) {
 }
 
 async function listCloudinaryFiles() {
+    // Cloudinary distingue entre "public ID" y "asset folder".
+    // Primero intentamos consultar la carpeta directamente, que es más robusto
+    // cuando la cuenta usa el modo de carpetas de Cloudinary.
+    try {
+        const result = await cloudinary.api.resources_by_asset_folder(FILES_FOLDER, {
+            max_results: 500,
+            direction: 'desc',
+            context: true
+        });
+
+        const resources = result.resources || [];
+        return resources.map(publicFileInfo).sort((a, b) => b.modified - a.modified);
+    } catch (folderError) {
+        console.error('Cloudinary list by asset folder:', {
+            message: folderError?.message,
+            http_code: folderError?.http_code,
+            name: folderError?.name
+        });
+    }
+
+    // Respaldo: buscar por prefijo de public_id en cada resource_type.
     const all = [];
     const errors = [];
 
-    // Los instructivos normalmente son recursos RAW (PDF, DOCX, XLSX, etc.),
-    // pero también aceptamos imágenes y videos. Cada tipo se consulta por separado
-    // para que un fallo de un tipo no bloquee todo el repositorio.
     for (const resourceType of ['raw', 'image', 'video']) {
         try {
             const result = await cloudinary.api.resources({
@@ -186,10 +204,8 @@ async function listCloudinaryFiles() {
         }
     }
 
-    // Si Cloudinary rechazó las tres consultas, propagamos el error real al
-    // manejador de /files para que Render lo registre correctamente.
     if (all.length === 0 && errors.length === 3) {
-        const error = new Error('Cloudinary rechazó las consultas de los tres tipos de recurso.');
+        const error = new Error('Cloudinary rechazó las consultas de archivos.');
         error.details = errors;
         throw error;
     }
