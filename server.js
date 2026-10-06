@@ -158,19 +158,40 @@ function publicFileInfo(resource) {
 
 async function listCloudinaryFiles() {
     const all = [];
+    const errors = [];
 
-    // Buscamos directamente dentro de la carpeta BENM en Cloudinary.
-    // No dependemos de tags para listar los instructivos.
+    // Los instructivos normalmente son recursos RAW (PDF, DOCX, XLSX, etc.),
+    // pero también aceptamos imágenes y videos. Cada tipo se consulta por separado
+    // para que un fallo de un tipo no bloquee todo el repositorio.
     for (const resourceType of ['raw', 'image', 'video']) {
-        const result = await cloudinary.api.resources({
-            resource_type: resourceType,
-            type: 'upload',
-            prefix: `${FILES_FOLDER}/`,
-            max_results: 500,
-            direction: 'desc',
-            context: true
-        });
-        all.push(...(result.resources || []));
+        try {
+            const result = await cloudinary.api.resources({
+                resource_type: resourceType,
+                type: 'upload',
+                prefix: `${FILES_FOLDER}/`,
+                max_results: 500
+            });
+            all.push(...(result.resources || []));
+        } catch (error) {
+            console.error(`Cloudinary list ${resourceType}:`, {
+                message: error?.message,
+                http_code: error?.http_code,
+                name: error?.name
+            });
+            errors.push({
+                resourceType,
+                message: error?.message || 'Error desconocido',
+                http_code: error?.http_code || null
+            });
+        }
+    }
+
+    // Si Cloudinary rechazó las tres consultas, propagamos el error real al
+    // manejador de /files para que Render lo registre correctamente.
+    if (all.length === 0 && errors.length === 3) {
+        const error = new Error('Cloudinary rechazó las consultas de los tres tipos de recurso.');
+        error.details = errors;
+        throw error;
     }
 
     return all.map(publicFileInfo).sort((a, b) => b.modified - a.modified);
