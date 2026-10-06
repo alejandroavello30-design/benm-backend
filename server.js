@@ -343,5 +343,4 @@ app.get('/token', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Radio Equipo token server escuchando en http://0.0.0.0:${PORT}`);
-    console.log(`Archivos BENM: ${FILES_DIR}`);
 });
