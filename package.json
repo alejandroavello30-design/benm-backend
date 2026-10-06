@@ -9,6 +9,8 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "livekit-server-sdk": "^2.19.1"
+    "livekit-server-sdk": "^2.19.1",
+    "multer": "^2.0.2",
+    "cloudinary": "^2.7.0"
   }
 }
