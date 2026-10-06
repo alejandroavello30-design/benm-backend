@@ -18,9 +18,23 @@ const ROOM_DEFAULT = 'general';
 const allowedRooms = new Set(['general', 'coordinacion', 'emergencia']);
 const emergencyAlerts = new Map();
 
-const CLOUDINARY_CLOUD_NAME = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim();
-const CLOUDINARY_API_KEY = String(process.env.CLOUDINARY_API_KEY || '').trim();
-const CLOUDINARY_API_SECRET = String(process.env.CLOUDINARY_API_SECRET || '').trim();
+const CLOUDINARY_URL = String(process.env.CLOUDINARY_URL || '').trim();
+let CLOUDINARY_CLOUD_NAME = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+let CLOUDINARY_API_KEY = String(process.env.CLOUDINARY_API_KEY || '').trim();
+let CLOUDINARY_API_SECRET = String(process.env.CLOUDINARY_API_SECRET || '').trim();
+
+if (CLOUDINARY_URL) {
+    try {
+        const parsed = new URL(CLOUDINARY_URL);
+        if (parsed.protocol === 'cloudinary:') {
+            CLOUDINARY_CLOUD_NAME = parsed.hostname;
+            CLOUDINARY_API_KEY = decodeURIComponent(parsed.username);
+            CLOUDINARY_API_SECRET = decodeURIComponent(parsed.password);
+        }
+    } catch (error) {
+        console.error('CLOUDINARY_URL inválida:', error?.message || error);
+    }
+}
 const FILES_TAG = 'benm_files';
 const FILES_FOLDER = 'benm/files';
 
