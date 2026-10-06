@@ -18,9 +18,9 @@ const ROOM_DEFAULT = 'general';
 const allowedRooms = new Set(['general', 'coordinacion', 'emergencia']);
 const emergencyAlerts = new Map();
 
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
-const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+const CLOUDINARY_CLOUD_NAME = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+const CLOUDINARY_API_KEY = String(process.env.CLOUDINARY_API_KEY || '').trim();
+const CLOUDINARY_API_SECRET = String(process.env.CLOUDINARY_API_SECRET || '').trim();
 const FILES_TAG = 'benm_files';
 const FILES_FOLDER = 'benm/files';
 
@@ -64,10 +64,11 @@ app.get('/health', async (_req, res) => {
             const result = await cloudinary.api.ping();
             cloudinaryPing = result?.status === 'ok';
         } catch (error) {
+            console.error('Cloudinary ping error:', error);
             cloudinaryError = {
-                message: error?.message || 'Error desconocido',
-                http_code: error?.http_code || null,
-                name: error?.name || null
+                message: String(error?.message || error?.error?.message || error?.response?.body?.error?.message || error || 'Error desconocido').slice(0, 300),
+                http_code: error?.http_code || error?.statusCode || error?.response?.statusCode || null,
+                name: error?.name || error?.constructor?.name || null
             };
         }
     }
