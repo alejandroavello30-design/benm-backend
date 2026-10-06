@@ -54,13 +54,32 @@ function isAdminCode(code) {
     return Boolean(ADMIN_ACCESS_CODE) && code === ADMIN_ACCESS_CODE;
 }
 
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+    const configured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+    let cloudinaryPing = false;
+    let cloudinaryError = null;
+
+    if (configured) {
+        try {
+            const result = await cloudinary.api.ping();
+            cloudinaryPing = result?.status === 'ok';
+        } catch (error) {
+            cloudinaryError = {
+                message: error?.message || 'Error desconocido',
+                http_code: error?.http_code || null,
+                name: error?.name || null
+            };
+        }
+    }
+
     res.json({
         ok: true,
         service: 'radio-equipo',
         maxParticipants: MAX_PARTICIPANTS,
         files: true,
-        cloudinary: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)
+        cloudinary: configured,
+        cloudinaryPing,
+        ...(cloudinaryError ? { cloudinaryError } : {})
     });
 });
 
