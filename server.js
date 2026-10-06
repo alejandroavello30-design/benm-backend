@@ -158,16 +158,21 @@ function publicFileInfo(resource) {
 
 async function listCloudinaryFiles() {
     const all = [];
+
+    // Buscamos directamente dentro de la carpeta BENM en Cloudinary.
+    // No dependemos de tags para listar los instructivos.
     for (const resourceType of ['raw', 'image', 'video']) {
-        const result = await cloudinary.api.resources_by_tag(FILES_TAG, {
+        const result = await cloudinary.api.resources({
             resource_type: resourceType,
             type: 'upload',
+            prefix: `${FILES_FOLDER}/`,
             max_results: 500,
             direction: 'desc',
             context: true
         });
         all.push(...(result.resources || []));
     }
+
     return all.map(publicFileInfo).sort((a, b) => b.modified - a.modified);
 }
 
