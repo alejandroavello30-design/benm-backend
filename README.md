@@ -1,4 +1,4 @@
-# BENM backend 0.3.15-server.2
+# BENM backend 0.3.15-server.3
 
 Servidor compatible con BENM Android 0.3.14 y 0.3.15. Agrega asistencia diaria, permisos de miembro/administrador y recuperación explícita de una conexión anterior con el mismo nombre. Se conservan los canales General y Coordinación, las alertas y la implementación actual de instructivos de Cloudinary.
 

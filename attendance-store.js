@@ -31,6 +31,9 @@ export function createFileStore(directory) {
 // overwrite the first record because every upload uses overwrite:false.
 export function createCloudinaryStore(cloudinary, prefix = 'benm/attendance') {
     const options = { resource_type: 'raw', type: 'authenticated', context: true };
+    // Admin API rejects with { error: { http_code, message } }; Upload API
+    // versions may expose http_code at the top level instead.
+    const statusOf = error => error?.http_code || error?.error?.http_code;
     const idFor = (date, name) => `${prefix}/${date}/${crypto.createHash('sha256').update(attendanceIdentity(name)).digest('hex')}.json`;
     function decode(resource, date) {
         const encoded = resource?.context?.custom?.record || resource?.context?.record;
@@ -44,7 +47,7 @@ export function createCloudinaryStore(cloudinary, prefix = 'benm/attendance') {
     }
     async function find(date, name) {
         try { return decode(await cloudinary.api.resource(idFor(date, name), options), date); }
-        catch (error) { if (error.http_code === 404) return null; throw error; }
+        catch (error) { if (statusOf(error) === 404) return null; throw error; }
     }
     return {
         async list(date, name) {
@@ -68,7 +71,7 @@ export function createCloudinaryStore(cloudinary, prefix = 'benm/attendance') {
                     overwrite: false, context: { record: Buffer.from(JSON.stringify(record)).toString('base64url') }
                 });
             } catch (error) {
-                if (error.http_code !== 409) throw error;
+                if (statusOf(error) !== 409) throw error;
                 upload = { existing: true };
             }
             const canonical = await find(record.date, record.name);

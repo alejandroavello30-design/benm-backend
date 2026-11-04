@@ -12,7 +12,8 @@ function fixture() {
             async resource(id, options) {
                 assert.equal(options.type, 'authenticated');
                 assert.equal(options.resource_type, 'raw');
-                if (!assets.has(id)) throw { http_code: 404 };
+                // Match the real Cloudinary Admin SDK's rejection envelope.
+                if (!assets.has(id)) throw { error: { http_code: 404, message: 'Resource not found' } };
                 return structuredClone(assets.get(id));
             },
             async resources(options) {
