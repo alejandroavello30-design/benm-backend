@@ -58,14 +58,48 @@ enum StoredZIP {
         func u32(_ v: UInt32) -> Data { var n = v.littleEndian; return withUnsafeBytes(of: &n) { Data($0) } }
         for (name, bytes) in files {
             let path = Data(name.utf8), offset = UInt32(out.count), crc = crc32(bytes), size = UInt32(bytes.count)
-            out += u32(0x04034b50) + u16(20) + u16(0x800) + u16(0) + u16(0) + u16(0x21)
-            out += u32(crc) + u32(size) + u32(size) + u16(UInt16(path.count)) + u16(0) + path + bytes
-            central += u32(0x02014b50) + u16(20) + u16(20) + u16(0x800) + u16(0) + u16(0) + u16(0x21)
-            central += u32(crc) + u32(size) + u32(size) + u16(UInt16(path.count)) + u16(0) + u16(0) + u16(0) + u16(0) + u32(0) + u32(offset) + path
+            out += u32(0x04034b50)
+            out += u16(20)
+            out += u16(0x800)
+            out += u16(0)
+            out += u16(0)
+            out += u16(0x21)
+            out += u32(crc)
+            out += u32(size)
+            out += u32(size)
+            out += u16(UInt16(path.count))
+            out += u16(0)
+            out += path
+            out += bytes
+            central += u32(0x02014b50)
+            central += u16(20)
+            central += u16(20)
+            central += u16(0x800)
+            central += u16(0)
+            central += u16(0)
+            central += u16(0x21)
+            central += u32(crc)
+            central += u32(size)
+            central += u32(size)
+            central += u16(UInt16(path.count))
+            central += u16(0)
+            central += u16(0)
+            central += u16(0)
+            central += u16(0)
+            central += u32(0)
+            central += u32(offset)
+            central += path
         }
         let offset = UInt32(out.count)
         out += central
-        out += u32(0x06054b50) + u16(0) + u16(0) + u16(UInt16(files.count)) + u16(UInt16(files.count)) + u32(UInt32(central.count)) + u32(offset) + u16(0)
+        out += u32(0x06054b50)
+        out += u16(0)
+        out += u16(0)
+        out += u16(UInt16(files.count))
+        out += u16(UInt16(files.count))
+        out += u32(UInt32(central.count))
+        out += u32(offset)
+        out += u16(0)
         return out
     }
 }
