@@ -41,7 +41,7 @@ export function createAttendance({ directory, store, secret, now = () => new Dat
         if (!date) return res.status(400).json({ error: 'Fecha inválida o futura.' });
         try {
             const session = req.attendanceSession;
-            const records = (await storage.list(date, session.role === 'admin' ? null : session.name)).filter(row => session.role === 'admin' || identity(row.name) === identity(session.name));
+            const records = await storage.list(date);
             res.json({ date, today: today(), role: session.role, records });
         } catch { res.status(503).json({ error: 'No se pudo leer la asistencia. Intenta nuevamente.' }); }
     });

@@ -31,7 +31,7 @@ test('attendance permissions, duplicates, history, persistence and Chile date bo
         const concurrent = await Promise.all(Array.from({ length: 8 }, () => call(member, 'POST', {})));
         assert.ok(concurrent.every(result => result.body.duplicate));
         assert.equal((await call(admin, 'POST', { name: 'Luis' })).status, 201);
-        assert.equal((await call(member)).body.records.length, 1);
+        assert.equal((await call(member)).body.records.length, 2);
         assert.equal((await call(admin)).body.records.length, 2);
         assert.equal((await call(admin, 'POST', { name: 'Luis', date: '2026-11-02' })).status, 201);
         assert.equal((await call(admin, 'GET', null, '?date=2026-02-30')).status, 400);
@@ -47,7 +47,7 @@ test('attendance permissions, duplicates, history, persistence and Chile date bo
         assert.equal((await call(member)).body.today, '2026-11-04');
         assert.equal((await call(member)).body.records.length, 0);
         assert.equal((await call(member, 'POST', {})).status, 201);
-        assert.equal((await call(member, 'GET', null, '?date=2026-11-03')).body.records.length, 1);
+        assert.equal((await call(member, 'GET', null, '?date=2026-11-03')).body.records.length, 2);
         clock = new Date('2026-11-06T03:30:00Z');
         assert.equal((await call(member)).status, 401);
     } finally {

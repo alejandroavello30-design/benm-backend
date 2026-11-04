@@ -116,8 +116,9 @@ app.get('/health', async (_req, res) => {
     res.json({
         ok: true,
         service: 'radio-equipo',
-        version: '0.3.15-server.3',
+        version: '0.3.15-server.4',
         attendance: true,
+        attendanceTeamVisible: true,
         attendanceReady,
         attendanceStorage: process.env.ATTENDANCE_DIR ? 'disk' : (attendanceStore ? 'cloudinary-authenticated' : 'unconfigured'),
         attendanceStorageCheck,

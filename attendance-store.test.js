@@ -75,7 +75,7 @@ test('storage probe verifies metadata and removes only its own disposable asset'
     assert.equal((await store.list('2026-11-04'))[0].name, 'Ana');
 });
 
-test('cloud storage routes isolate member data and do not confirm failed writes', async () => {
+test('team members see attendance but cannot mark for others or bypass failed writes', async () => {
     const f = fixture();
     const store = createCloudinaryStore(f.cloudinary);
     const attendance = createAttendance({ store, secret: 'test-only', now: () => new Date('2026-11-04T12:00:00Z') });
@@ -88,7 +88,9 @@ test('cloud storage routes isolate member data and do not confirm failed writes'
     try {
         const member = await fetch(endpoint, { headers: auth('member') });
         const body = await member.json();
-        assert.deepEqual(body.records.map(record => record.name), ['Ana']);
+        assert.deepEqual(body.records.map(record => record.name), ['Ana', 'Luis']);
+        const forbidden = await fetch(endpoint, { method: 'POST', headers: auth('member'), body: JSON.stringify({ name: 'Luis' }) });
+        assert.equal(forbidden.status, 403);
         const admin = await fetch(endpoint, { headers: auth('admin') });
         assert.equal((await admin.json()).records.length, 2);
         f.cloudinary.uploader.upload = async () => { throw { http_code: 500 }; };

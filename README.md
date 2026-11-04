@@ -1,4 +1,4 @@
-# BENM backend 0.3.15-server.3
+# BENM backend 0.3.15-server.4
 
 Servidor compatible con BENM Android 0.3.14 y 0.3.15. Agrega asistencia diaria, permisos de miembro/administrador y recuperación explícita de una conexión anterior con el mismo nombre. Se conservan los canales General y Coordinación, las alertas y la implementación actual de instructivos de Cloudinary.
 
@@ -16,7 +16,7 @@ Opcional: `ATTENDANCE_DIR` selecciona almacenamiento en un disco persistente en 
 
 ## Uso y permisos
 
-- El miembro marca únicamente su propia asistencia del día y consulta su historial.
+- Todos los miembros autenticados pueden consultar la asistencia del equipo y su historial por fecha. Cada miembro marca únicamente su propia asistencia del día.
 - El administrador puede marcar por otros miembros, consultar días anteriores y registrar una asistencia retroactiva.
 - Se conserva la primera marcación del nombre/día, su hora real y quién la registró. Las fechas usan America/Santiago.
 - El APK exporta el listado consultado por el administrador a CSV para Excel.
