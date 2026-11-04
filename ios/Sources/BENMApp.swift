@@ -2,9 +2,11 @@ import SwiftUI
 import QuickLook
 import UniformTypeIdentifiers
 import UIKit
+import AVFoundation
 
 @main
 struct BENMApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var radio = RadioModel()
     var body: some Scene { WindowGroup { RadioView(radio: radio).preferredColorScheme(.dark) } }
 }
@@ -79,6 +81,14 @@ struct RadioView: View {
             .alert("BENM", isPresented: Binding(get: { radio.error != nil }, set: { if !$0 { radio.error = nil } })) {
                 Button("Aceptar") { radio.error = nil }
             } message: { Text(radio.error ?? "") }
+            .onReceive(NotificationCenter.default.publisher(for: .benmOpenAlert)) { notification in
+                guard let data = notification.userInfo, let id = data["id"] as? String,
+                      let sender = data["sender"] as? String, let message = data["message"] as? String else { return }
+                showRoster = false; showAttendance = false; showFiles = false; showEmergency = false
+                radio.setTalking(false)
+                radio.alert = Emergency(id: id, sender: sender, message: message, timestamp: nil)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { _ in radio.setTalking(false) }
             .onChange(of: phase) { value in
                 if value != .active { holding = false; radio.setTalking(false) }
             }

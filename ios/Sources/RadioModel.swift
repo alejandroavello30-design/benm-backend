@@ -173,6 +173,7 @@ final class RadioModel: NSObject, ObservableObject {
         content.title = "BENM · \(incoming.sender)"
         content.body = incoming.message
         content.sound = .default
+        content.userInfo = ["id": incoming.id, "sender": incoming.sender, "message": incoming.message]
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: incoming.id, content: content, trigger: nil))
     }
 
