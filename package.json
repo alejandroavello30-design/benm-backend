@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test *.test.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
@@ -14,3 +15,4 @@
     "cloudinary": "^2.7.0"
   }
 }
+

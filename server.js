@@ -4,7 +4,10 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
-import { AccessToken, LiveKitAPI } from 'livekit-server-sdk';
+import { LiveKitAPI } from 'livekit-server-sdk';
+import { createAttendance } from './attendance.js';
+import { createCloudinaryStore } from './attendance-store.js';
+import { createTokenRouter } from './token-route.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -15,7 +18,7 @@ const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE || '';
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const MAX_PARTICIPANTS = Number(process.env.ROOM_MAX_PARTICIPANTS || 25);
 const ROOM_DEFAULT = 'general';
-const allowedRooms = new Set(['general', 'coordinacion', 'emergencia']);
+const allowedRooms = new Set(['general', 'coordinacion']);
 const emergencyAlerts = new Map();
 
 const CLOUDINARY_URL = String(process.env.CLOUDINARY_URL || '').trim();
@@ -61,12 +64,29 @@ const upload = multer({
 });
 
 function isTeamCode(code) {
-    return code === TEAM_ACCESS_CODE || (ADMIN_ACCESS_CODE && code === ADMIN_ACCESS_CODE);
+    return (Boolean(TEAM_ACCESS_CODE) && code === TEAM_ACCESS_CODE) || (ADMIN_ACCESS_CODE && code === ADMIN_ACCESS_CODE);
 }
 
 function isAdminCode(code) {
     return Boolean(ADMIN_ACCESS_CODE) && code === ADMIN_ACCESS_CODE;
 }
+
+const cloudinaryConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+const attendanceStore = !process.env.ATTENDANCE_DIR && cloudinaryConfigured ? createCloudinaryStore(cloudinary) : null;
+const attendanceSecret = process.env.ATTENDANCE_SECRET || (cloudinaryConfigured
+    ? crypto.createHmac('sha256', CLOUDINARY_API_SECRET).update('benm-attendance-session-v1').digest('hex') : undefined);
+const attendance = createAttendance({ directory: process.env.ATTENDANCE_DIR, store: attendanceStore, secret: attendanceSecret });
+app.use('/attendance', attendance.router);
+let attendanceReady = Boolean(process.env.ATTENDANCE_DIR);
+let attendanceStorageCheck = attendanceStore ? 'pending' : (attendanceReady ? 'disk' : 'unconfigured');
+if (attendanceStore) attendanceStore.verify().then(() => {
+    attendanceReady = true;
+    attendanceStorageCheck = 'passed';
+    console.log('Asistencia: prueba de almacenamiento autenticado y limpieza aprobada.');
+}).catch(() => {
+    attendanceStorageCheck = 'failed';
+    console.error('Asistencia: no se pudo verificar el almacenamiento Cloudinary.');
+});
 
 app.get('/health', async (_req, res) => {
     const configured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
@@ -90,6 +110,11 @@ app.get('/health', async (_req, res) => {
     res.json({
         ok: true,
         service: 'radio-equipo',
+        version: '0.3.15-server.2',
+        attendance: true,
+        attendanceReady,
+        attendanceStorage: process.env.ATTENDANCE_DIR ? 'disk' : (attendanceStore ? 'cloudinary-authenticated' : 'unconfigured'),
+        attendanceStorageCheck,
         maxParticipants: MAX_PARTICIPANTS,
         files: true,
         cloudinary: configured,
@@ -348,75 +373,13 @@ app.delete('/files/:id', async (req, res) => {
 
 /* ---------- TOKEN LIVEKIT ---------- */
 
-app.get('/token', async (req, res) => {
-    try {
-        const name = String(req.query.name || '').trim();
-        const accessCode = String(req.query.accessCode || '');
-        const roomName = String(req.query.room || ROOM_DEFAULT).trim() || ROOM_DEFAULT;
-
-        if (!allowedRooms.has(roomName)) {
-            return res.status(400).json({ error: 'Canal no permitido.' });
-        }
-
-        if (!name || name.length > 30) {
-            return res.status(400).json({ error: 'Nombre inválido.' });
-        }
-
-        if (!isTeamCode(accessCode)) {
-            return res.status(401).json({ error: 'Código de equipo incorrecto.' });
-        }
-
-        // Create/configure the room before querying participants.
-        const rooms = await api.room.listRooms([roomName]);
-        if (rooms.length === 0) {
-            await api.room.createRoom({
-                name: roomName,
-                maxParticipants: MAX_PARTICIPANTS,
-                emptyTimeout: 10 * 60
-            });
-        }
-
-        const participants = await api.room.listParticipants(roomName);
-
-        if (participants.some((p) => p.identity === name)) {
-            return res.status(409).json({ error: 'Ese nombre ya está conectado.' });
-        }
-
-        if (participants.length >= MAX_PARTICIPANTS) {
-            return res.status(403).json({ error: `El canal está lleno (${MAX_PARTICIPANTS} integrantes).` });
-        }
-
-        const token = new AccessToken(
-            process.env.LIVEKIT_API_KEY,
-            process.env.LIVEKIT_API_SECRET,
-            {
-                identity: name,
-                name,
-                ttl: '2h'
-            }
-        );
-
-        token.addGrant({
-            roomJoin: true,
-            room: roomName,
-            canPublish: true,
-            canSubscribe: true
-        });
-
-        const participantToken = await token.toJwt();
-
-        res.json({
-            serverUrl: LIVEKIT_URL,
-            participantToken,
-            room: roomName,
-            role: isAdminCode(accessCode) ? 'admin' : 'member'
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error interno del servidor.' });
-    }
-});
+app.use('/token', createTokenRouter({
+    roomApi: api.room, allowedRooms, maxParticipants: MAX_PARTICIPANTS,
+    livekitUrl: LIVEKIT_URL, apiKey: process.env.LIVEKIT_API_KEY, apiSecret: process.env.LIVEKIT_API_SECRET,
+    isTeamCode, isAdminCode, issueAttendanceToken: attendance.issueToken
+}));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Radio Equipo token server escuchando en http://0.0.0.0:${PORT}`);
 });
+
