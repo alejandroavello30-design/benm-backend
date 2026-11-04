@@ -37,7 +37,7 @@ final class RadioModel: NSObject, ObservableObject {
     }
 
     func connect(to next: Channel? = nil, recover: Bool = false) async {
-        guard !busy else { return }
+        guard !busy, !connected else { return }
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanName.isEmpty, cleanName.count <= 30, !code.isEmpty else {
             error = "Ingresa tu nombre (hasta 30 caracteres) y el código del equipo."
@@ -45,7 +45,6 @@ final class RadioModel: NSObject, ObservableObject {
         }
         busy = true
         defer { busy = false }
-        if connected { await disconnect() }
         if let next { channel = next }
         status = "Conectando…"
         do {
@@ -96,6 +95,9 @@ final class RadioModel: NSObject, ObservableObject {
     }
 
     func disconnect() async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
         connected = false
         poll?.cancel()
         poll = nil
@@ -179,7 +181,7 @@ final class RadioModel: NSObject, ObservableObject {
         busy = true
         setTalking(false)
         defer { busy = false }
-        let message = type == "EVACUACIÓN PARCIAL" ? "\(type) | \(location)" : type
+        let message = type == "EVACUACIÓN PARCIAL" ? "\(type) | Lugar: \(location)" : type
         do {
             let reply = try await api.sendEmergency(name: name, channel: channel, message: message)
             guard let sent = reply.alert else { throw ServiceError(message: "El servidor no confirmó la alerta.") }
