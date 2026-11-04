@@ -1,0 +1,39 @@
+name: BENM
+options:
+  bundleIdPrefix: cl.radioequipo
+  deploymentTarget:
+    iOS: '16.0'
+packages:
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift.git
+    exactVersion: 2.18.0
+targets:
+  BENM:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    dependencies:
+      - package: LiveKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cl.radioequipo.benm
+        SWIFT_VERSION: '5.0'
+        TARGETED_DEVICE_FAMILY: '1,2'
+        CODE_SIGN_STYLE: Automatic
+        MARKETING_VERSION: '0.1.0'
+        CURRENT_PROJECT_VERSION: '1'
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: BENM
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: BENM usa el micrófono al mantener pulsado el botón para hablar con tu equipo.
+        UIBackgroundModes: [audio]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+schemes:
+  BENM:
+    build:
+      targets:
+        BENM: all

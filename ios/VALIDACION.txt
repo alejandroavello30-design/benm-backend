@@ -1,0 +1,1 @@
+Código actualizado a 0.3.21. Compilación y verificación XLSX: ver ejecución GitHub Actions. Prueba en iPhone físico pendiente.

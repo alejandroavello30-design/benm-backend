@@ -1,0 +1,45 @@
+name: BENM iPhone native
+on:
+  push:
+    branches: [codex/benm-ios-native]
+    paths: ['ios/**', '.github/workflows/benm-ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Excel export
+        working-directory: ios
+        run: |
+          swiftc Sources/RosterData.swift Sources/RosterWorkbook.swift verify-workbook.swift -o verify-workbook
+          ./verify-workbook
+          python3 verify-workbook.py
+      - name: Build native iPhone app
+        run: |
+          set -o pipefail
+          xcodebuild -version
+          xcodebuild -project ios/BENM.xcodeproj -scheme BENM -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee xcodebuild.log
+      - name: Package unsigned IPA for AltStore
+        run: |
+          mkdir -p package/Payload
+          cp -R build/Build/Products/Release-iphoneos/BENM.app package/Payload/
+          test -f package/Payload/BENM.app/BENM
+          plutil -lint package/Payload/BENM.app/Info.plist
+          cd package
+          /usr/bin/zip -qr ../BENM-iPhone-0.3.21-AltStore.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BENM-iPhone-0.3.21-AltStore
+          path: BENM-iPhone-0.3.21-AltStore.ipa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-validation-logs
+          path: |
+            xcodebuild.log
+            ios/lista-prueba.xlsx
+            ios/lista-vacia.xlsx

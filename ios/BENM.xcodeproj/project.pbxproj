@@ -1,0 +1,37 @@
+// !$*UTF8*$!
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+CBD8A68E4FB7EEE82388F2D2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "API.swift"; sourceTree = "<group>"; };
+675BC4D1FD9424DACF905C8A = { isa = PBXBuildFile; fileRef = CBD8A68E4FB7EEE82388F2D2; };
+6B4CFC8F40AAD73A90710345 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Attendance.swift"; sourceTree = "<group>"; };
+503DC80C8655A0D2FB1C36EB = { isa = PBXBuildFile; fileRef = 6B4CFC8F40AAD73A90710345; };
+5606CBA81181238AC330698B = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BENMApp.swift"; sourceTree = "<group>"; };
+48DBAAB65131EA0177C8102A = { isa = PBXBuildFile; fileRef = 5606CBA81181238AC330698B; };
+6A2C5CFBB0F89B49C87A78CA = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Credentials.swift"; sourceTree = "<group>"; };
+303B55AE092135931677BCC9 = { isa = PBXBuildFile; fileRef = 6A2C5CFBB0F89B49C87A78CA; };
+CA877BE2BBD82F1736A411E7 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RadioModel.swift"; sourceTree = "<group>"; };
+3453F22BD846419C5798A588 = { isa = PBXBuildFile; fileRef = CA877BE2BBD82F1736A411E7; };
+40DBAB958AC1EEFDFCABE286 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Roster.swift"; sourceTree = "<group>"; };
+7186FA650E91F9A73FEB0334 = { isa = PBXBuildFile; fileRef = 40DBAB958AC1EEFDFCABE286; };
+53909FB249EA3B0B3A180BCB = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RosterData.swift"; sourceTree = "<group>"; };
+864DDC2438E5DF8F10DD0397 = { isa = PBXBuildFile; fileRef = 53909FB249EA3B0B3A180BCB; };
+1E3410C0E37A01627DDECEF1 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RosterWorkbook.swift"; sourceTree = "<group>"; };
+E05D564117A97CD43712E545 = { isa = PBXBuildFile; fileRef = 1E3410C0E37A01627DDECEF1; };
+5F260B5533994D00299F0D6A = { isa = PBXBuildFile; productRef = 91DD037FCA979EBA5C4843D9; };
+91DD037FCA979EBA5C4843D9 = { isa = XCSwiftPackageProductDependency; package = C536310C15EC0DDD5285C0E8; productName = LiveKit; };
+C536310C15EC0DDD5285C0E8 = { isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/livekit/client-sdk-swift.git"; requirement = { kind = exactVersion; version = 2.18.0; }; };
+A172CEDCAE47474B615C54D5 = { isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BENM.app; sourceTree = BUILT_PRODUCTS_DIR; };
+1455444174429298B0F374B3 = { isa = PBXGroup; path = Sources; sourceTree = "<group>"; children = (CBD8A68E4FB7EEE82388F2D2,6B4CFC8F40AAD73A90710345,5606CBA81181238AC330698B,6A2C5CFBB0F89B49C87A78CA,CA877BE2BBD82F1736A411E7,40DBAB958AC1EEFDFCABE286,53909FB249EA3B0B3A180BCB,1E3410C0E37A01627DDECEF1); };
+CB00D889DA9E2BC4A36341DA = { isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (A172CEDCAE47474B615C54D5); };
+19F479106CE8C3BA8C106518 = { isa = PBXGroup; sourceTree = "<group>"; children = (1455444174429298B0F374B3,CB00D889DA9E2BC4A36341DA); };
+DE62F1BD2E122BBF6BD45B9C = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; runOnlyForDeploymentPostprocessing = 0; files = (675BC4D1FD9424DACF905C8A,503DC80C8655A0D2FB1C36EB,48DBAAB65131EA0177C8102A,303B55AE092135931677BCC9,3453F22BD846419C5798A588,7186FA650E91F9A73FEB0334,864DDC2438E5DF8F10DD0397,E05D564117A97CD43712E545); };
+8A7588AD5FA397C62F95C6FE = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; runOnlyForDeploymentPostprocessing = 0; files = (5F260B5533994D00299F0D6A); };
+CCC8ECE80271796AF54350E8 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; runOnlyForDeploymentPostprocessing = 0; files = (); };
+73EBF6644258C120893E685D = { isa = XCBuildConfiguration; name = Debug; buildSettings = {SDKROOT = "iphoneos";IPHONEOS_DEPLOYMENT_TARGET = "16.0";SWIFT_VERSION = "5.0";CLANG_ENABLE_MODULES = "YES";SWIFT_OPTIMIZATION_LEVEL = "-Onone";SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";}; };
+0B0C687DF8B6B8DC790B519C = { isa = XCBuildConfiguration; name = Release; buildSettings = {SDKROOT = "iphoneos";IPHONEOS_DEPLOYMENT_TARGET = "16.0";SWIFT_VERSION = "5.0";CLANG_ENABLE_MODULES = "YES";SWIFT_OPTIMIZATION_LEVEL = "-O";}; };
+76F8DEC3DFE0BDB465198890 = { isa = XCConfigurationList; buildConfigurations = (73EBF6644258C120893E685D,0B0C687DF8B6B8DC790B519C); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+6C7EFF6369083C8E1F2B1994 = { isa = XCBuildConfiguration; name = Debug; buildSettings = {SDKROOT = "iphoneos";IPHONEOS_DEPLOYMENT_TARGET = "16.0";SWIFT_VERSION = "5.0";CLANG_ENABLE_MODULES = "YES";SWIFT_OPTIMIZATION_LEVEL = "-Onone";SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";PRODUCT_BUNDLE_IDENTIFIER = "cl.radioequipo.benm";PRODUCT_NAME = "$(TARGET_NAME)";INFOPLIST_FILE = "Info.plist";CODE_SIGN_STYLE = "Automatic";TARGETED_DEVICE_FAMILY = "1,2";SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";CURRENT_PROJECT_VERSION = "321";MARKETING_VERSION = "0.3.21";GENERATE_INFOPLIST_FILE = "NO";}; };
+DD75E2CB1C510A828AC72D96 = { isa = XCBuildConfiguration; name = Release; buildSettings = {SDKROOT = "iphoneos";IPHONEOS_DEPLOYMENT_TARGET = "16.0";SWIFT_VERSION = "5.0";CLANG_ENABLE_MODULES = "YES";SWIFT_OPTIMIZATION_LEVEL = "-O";PRODUCT_BUNDLE_IDENTIFIER = "cl.radioequipo.benm";PRODUCT_NAME = "$(TARGET_NAME)";INFOPLIST_FILE = "Info.plist";CODE_SIGN_STYLE = "Automatic";TARGETED_DEVICE_FAMILY = "1,2";SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";CURRENT_PROJECT_VERSION = "321";MARKETING_VERSION = "0.3.21";GENERATE_INFOPLIST_FILE = "NO";}; };
+1B672BF3DA427763BF644BE3 = { isa = XCConfigurationList; buildConfigurations = (6C7EFF6369083C8E1F2B1994,DD75E2CB1C510A828AC72D96); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+34A04005BCAF206EEC990BD9 = { isa = PBXNativeTarget; buildConfigurationList = 1B672BF3DA427763BF644BE3; buildPhases = (DE62F1BD2E122BBF6BD45B9C,8A7588AD5FA397C62F95C6FE,CCC8ECE80271796AF54350E8); buildRules = (); dependencies = (); name = BENM; packageProductDependencies = (91DD037FCA979EBA5C4843D9); productName = BENM; productReference = A172CEDCAE47474B615C54D5; productType = "com.apple.product-type.application"; };
+244210E48437B6556980A702 = { isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; }; buildConfigurationList = 76F8DEC3DFE0BDB465198890; compatibilityVersion = "Xcode 14.0"; developmentRegion = es; knownRegions = (es,en,Base); mainGroup = 19F479106CE8C3BA8C106518; productRefGroup = CB00D889DA9E2BC4A36341DA; packageReferences = (C536310C15EC0DDD5285C0E8); projectDirPath = ""; projectRoot = ""; targets = (34A04005BCAF206EEC990BD9); };
+}; rootObject = 244210E48437B6556980A702; }
