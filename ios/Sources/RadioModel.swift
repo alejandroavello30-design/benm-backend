@@ -205,8 +205,6 @@ final class RadioModel: NSObject, ObservableObject {
             let reply = try await api.files(code: code)
             files = reply.files
             role = reply.role
-            attendanceToken = reply.attendanceToken ?? ""
-            Credentials.save(code)
         } catch { self.error = error.localizedDescription }
     }
     func upload(_ url: URL) async {
