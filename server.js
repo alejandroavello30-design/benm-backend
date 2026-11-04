@@ -79,12 +79,18 @@ const attendance = createAttendance({ directory: process.env.ATTENDANCE_DIR, sto
 app.use('/attendance', attendance.router);
 let attendanceReady = Boolean(process.env.ATTENDANCE_DIR);
 let attendanceStorageCheck = attendanceStore ? 'pending' : (attendanceReady ? 'disk' : 'unconfigured');
+let attendanceStorageError = null;
 if (attendanceStore) attendanceStore.verify().then(() => {
     attendanceReady = true;
     attendanceStorageCheck = 'passed';
     console.log('Asistencia: prueba de almacenamiento autenticado y limpieza aprobada.');
-}).catch(() => {
+}).catch(error => {
     attendanceStorageCheck = 'failed';
+    let message = String(error?.message || error?.error?.message || error?.name || 'Error de almacenamiento');
+    for (const value of [CLOUDINARY_URL, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET]) {
+        if (value) message = message.split(value).join('[redacted]');
+    }
+    attendanceStorageError = { code: error?.http_code || null, message: message.slice(0, 180) };
     console.error('Asistencia: no se pudo verificar el almacenamiento Cloudinary.');
 });
 
@@ -115,6 +121,7 @@ app.get('/health', async (_req, res) => {
         attendanceReady,
         attendanceStorage: process.env.ATTENDANCE_DIR ? 'disk' : (attendanceStore ? 'cloudinary-authenticated' : 'unconfigured'),
         attendanceStorageCheck,
+        ...(attendanceStorageError ? { attendanceStorageError } : {}),
         maxParticipants: MAX_PARTICIPANTS,
         files: true,
         cloudinary: configured,
@@ -382,4 +389,3 @@ app.use('/token', createTokenRouter({
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Radio Equipo token server escuchando en http://0.0.0.0:${PORT}`);
 });
-
