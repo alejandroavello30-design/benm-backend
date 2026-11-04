@@ -41,7 +41,7 @@ struct RadioView: View {
 
                     if radio.connected { console } else { login }
                     if radio.busy { ProgressView().tint(cyan) }
-                    Text("Las alertas se reciben en el canal seleccionado mientras BENM mantiene conexión.")
+                    Text("iPhone · prueba 0.3.21. Las alertas requieren que BENM mantenga conexión; no se reciben con cierre forzado.")
                         .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 .padding(20).frame(maxWidth: 620).frame(maxWidth: .infinity)
@@ -112,7 +112,7 @@ struct RadioView: View {
                 Button("Lista") { radio.setTalking(false); showRoster = true }.frame(maxWidth: .infinity)
                 Button("Asistencia") { radio.setTalking(false); showAttendance = true }.frame(maxWidth: .infinity)
             }.buttonStyle(.bordered).disabled(radio.busy)
-            Button { showFiles = true } label: {
+            Button { radio.setTalking(false); showFiles = true } label: {
                 Label("INSTRUCTIVOS Y ARCHIVOS", systemImage: "books.vertical.fill").font(.subheadline.bold())
                     .frame(maxWidth: .infinity).padding(17).background(surface, in: RoundedRectangle(cornerRadius: 14))
             }.disabled(radio.busy)
