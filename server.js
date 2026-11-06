@@ -11,6 +11,8 @@ import { createTokenRouter } from './token-route.js';
 
 const app = express();
 app.disable('x-powered-by');
+app.get('/privacy', (_req, res) => res.type('html').sendFile(path.resolve('privacy.html')));
+app.get('/privacy.html', (_req, res) => res.redirect(301, '/privacy'));
 
 const PORT = Number(process.env.PORT || 3000);
 const TEAM_ACCESS_CODE = process.env.TEAM_ACCESS_CODE || '';
