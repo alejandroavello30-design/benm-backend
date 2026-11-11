@@ -1,6 +1,6 @@
 # Política de privacidad — NDM Radio Chile
 
-Actualizada el 10 de noviembre de 2026.
+Actualizada el 11 de noviembre de 2026.
 
 **Responsable:** Alejandro Avello V.  
 **Contacto:** alejandro.avello30@gmail.com  
@@ -12,7 +12,7 @@ NDM Radio Chile permite escuchar por internet la transmisión en vivo de la emis
 
 ## Conexión y datos técnicos
 
-Al iniciar la reproducción, el teléfono se conecta por HTTPS al proveedor de streaming `sonic-us.arkeo.cl`. Para entregar la señal, el servidor recibe la dirección IP y datos técnicos de la conexión, como la solicitud del reproductor. La aplicación no añade nombres, correos, identificadores publicitarios ni ubicación GPS a la solicitud. El proveedor puede conservar registros técnicos para operar, proteger y diagnosticar el servicio. Para consultar su tratamiento y conservación, o solicitar atención sobre datos asociados a la conexión, escribe al responsable indicado arriba; no se declara un plazo de retención que no esté confirmado por el proveedor.
+Al iniciar la reproducción, el teléfono se conecta por HTTPS al proveedor de streaming `sonic-us.arkeo.cl`. Para entregar la señal, el servidor recibe la dirección IP y datos técnicos de la conexión, como la solicitud del reproductor. La aplicación no añade nombres, correos, identificadores publicitarios ni ubicación GPS a la solicitud. El proveedor puede conservar registros técnicos para operar, proteger y diagnosticar el servicio. La plataforma de transmisión puede usar la dirección IP para distinguir conexiones de oyentes y estimar su país o ciudad en las estadísticas de audiencia. Esta ubicación es aproximada y no proviene del GPS. Para consultar su tratamiento y conservación, o solicitar atención sobre datos asociados a la conexión, escribe al responsable indicado arriba; no se declara un plazo de retención que no esté confirmado por el proveedor.
 
 La aplicación nativa no integra SDK de publicidad, analítica de comportamiento, seguimiento publicitario ni reportes automáticos de fallos a un servicio del desarrollador. Esto se refiere al software de la app; la programación sonora puede contener mensajes propios de la emisora.
 
