@@ -6,7 +6,8 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { LiveKitAPI } from 'livekit-server-sdk';
 import { createAttendance } from './attendance.js';
-import { createCloudinaryStore } from './attendance-store.js';
+import { createGroupAccess, groupRoom } from './group-access.js';
+import { createCloudinaryStore, createFileStore } from './attendance-store.js';
 import { createTokenRouter } from './token-route.js';
 
 const app = express();
@@ -22,6 +23,8 @@ const MAX_PARTICIPANTS = Number(process.env.ROOM_MAX_PARTICIPANTS || 25);
 const ROOM_DEFAULT = 'general';
 const allowedRooms = new Set(['general', 'coordinacion']);
 const emergencyAlerts = new Map();
+const groupAccess = createGroupAccess({ teamCode: TEAM_ACCESS_CODE, adminCode: ADMIN_ACCESS_CODE,
+    configuration: process.env.BENM_GROUPS, defaultLimit: MAX_PARTICIPANTS });
 
 const CLOUDINARY_URL = String(process.env.CLOUDINARY_URL || '').trim();
 let CLOUDINARY_CLOUD_NAME = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim();
@@ -65,19 +68,22 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-function isTeamCode(code) {
-    return (Boolean(TEAM_ACCESS_CODE) && code === TEAM_ACCESS_CODE) || (ADMIN_ACCESS_CODE && code === ADMIN_ACCESS_CODE);
-}
-
-function isAdminCode(code) {
-    return Boolean(ADMIN_ACCESS_CODE) && code === ADMIN_ACCESS_CODE;
+function filesFolder(group) {
+    return group.id === 'principal' ? FILES_FOLDER : `benm/groups/${group.id}/files`;
 }
 
 const cloudinaryConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
 const attendanceStore = !process.env.ATTENDANCE_DIR && cloudinaryConfigured ? createCloudinaryStore(cloudinary) : null;
 const attendanceSecret = process.env.ATTENDANCE_SECRET || (cloudinaryConfigured
     ? crypto.createHmac('sha256', CLOUDINARY_API_SECRET).update('benm-attendance-session-v1').digest('hex') : undefined);
-const attendance = createAttendance({ directory: process.env.ATTENDANCE_DIR, store: attendanceStore, secret: attendanceSecret });
+const groupStores = new Map();
+for (const id of groupAccess.groups.keys()) {
+    if (id === 'principal') continue;
+    if (process.env.ATTENDANCE_DIR) groupStores.set(id, createFileStore(path.join(process.env.ATTENDANCE_DIR, 'groups', id)));
+    else if (cloudinaryConfigured) groupStores.set(id, createCloudinaryStore(cloudinary, `benm/groups/${id}/attendance`));
+}
+const attendance = createAttendance({ directory: process.env.ATTENDANCE_DIR, store: attendanceStore,
+    secret: attendanceSecret, groupStorage: id => groupStores.get(id) });
 app.use('/attendance', attendance.router);
 let attendanceReady = Boolean(process.env.ATTENDANCE_DIR);
 let attendanceStorageCheck = attendanceStore ? 'pending' : (attendanceReady ? 'disk' : 'unconfigured');
@@ -118,7 +124,8 @@ app.get('/health', async (_req, res) => {
     res.json({
         ok: true,
         service: 'radio-equipo',
-        version: '0.3.15-server.4',
+        version: '0.3.15-server.5',
+        groupCodesSupported: true,
         attendance: true,
         attendanceTeamVisible: true,
         attendanceReady,
@@ -133,19 +140,28 @@ app.get('/health', async (_req, res) => {
     });
 });
 
+function alertRoom(req, channel) {
+    if (!allowedRooms.has(channel)) return null;
+    const code = req.get('X-Benm-Group-Code');
+    if (code === undefined) return channel; // Existing clients use the principal group.
+    const group = groupAccess.resolve(code);
+    return group ? groupRoom(group.id, channel) : null;
+}
+
 app.get('/emergency', (req, res) => {
     res.set('Cache-Control', 'no-store');
-    const roomName = String(req.query.room || ROOM_DEFAULT).trim() || ROOM_DEFAULT;
+    const roomName = alertRoom(req, String(req.query.room || ROOM_DEFAULT).trim() || ROOM_DEFAULT);
+    if (!roomName) return res.status(403).json({ error: 'Grupo o canal inválido.' });
     const alert = emergencyAlerts.get(roomName);
     res.json({ ok: true, alert: alert || null });
 });
 
 app.post('/emergency', express.json(), (req, res) => {
     const sender = String(req.body?.sender || '').trim();
-    const roomName = String(req.body?.room || ROOM_DEFAULT).trim() || ROOM_DEFAULT;
+    const roomName = alertRoom(req, String(req.body?.room || ROOM_DEFAULT).trim() || ROOM_DEFAULT);
     const message = String(req.body?.message || 'EMERGENCIA activada').trim();
 
-    if (!sender || sender.length > 30 || !allowedRooms.has(roomName)) {
+    if (!sender || sender.length > 30 || !roomName) {
         return res.status(400).json({ error: 'Solicitud de emergencia inválida.' });
     }
 
@@ -192,14 +208,14 @@ function assetId(resourceType, publicId) {
     return Buffer.from(`${resourceType}|${publicId}`, 'utf8').toString('base64url');
 }
 
-function decodeAssetId(id) {
+function decodeAssetId(id, folder) {
     try {
         const decoded = Buffer.from(String(id || ''), 'base64url').toString('utf8');
         const sep = decoded.indexOf('|');
         if (sep <= 0) return null;
         const resourceType = decoded.slice(0, sep);
         const publicId = decoded.slice(sep + 1);
-        if (!['image', 'video', 'raw'].includes(resourceType) || !publicId.startsWith(`${FILES_FOLDER}/`)) return null;
+        if (!['image', 'video', 'raw'].includes(resourceType) || !publicId.startsWith(`${folder}/`)) return null;
         return { resourceType, publicId };
     } catch { return null; }
 }
@@ -225,18 +241,18 @@ function publicFileInfo(resource) {
     };
 }
 
-async function listCloudinaryFiles() {
+async function listCloudinaryFiles(folder) {
     // Cloudinary distingue entre "public ID" y "asset folder".
     // Primero intentamos consultar la carpeta directamente, que es más robusto
     // cuando la cuenta usa el modo de carpetas de Cloudinary.
     try {
-        const result = await cloudinary.api.resources_by_asset_folder(FILES_FOLDER, {
+        const result = await cloudinary.api.resources_by_asset_folder(folder, {
             max_results: 500,
             direction: 'desc',
             context: true
         });
 
-        const resources = result.resources || [];
+        const resources = (result.resources || []).filter(resource => resource.public_id?.startsWith(`${folder}/`));
         return resources.map(publicFileInfo).sort((a, b) => b.modified - a.modified);
     } catch (folderError) {
         console.error('Cloudinary list by asset folder:', {
@@ -255,7 +271,7 @@ async function listCloudinaryFiles() {
             const result = await cloudinary.api.resources({
                 resource_type: resourceType,
                 type: 'upload',
-                prefix: `${FILES_FOLDER}/`,
+                prefix: `${folder}/`,
                 max_results: 500
             });
             all.push(...(result.resources || []));
@@ -282,8 +298,8 @@ async function listCloudinaryFiles() {
     return all.map(publicFileInfo).sort((a, b) => b.modified - a.modified);
 }
 
-async function findCloudinaryResource(id) {
-    const decoded = decodeAssetId(id);
+async function findCloudinaryResource(id, folder) {
+    const decoded = decodeAssetId(id, folder);
     if (!decoded) return null;
     return cloudinary.api.resource(decoded.publicId, {
         resource_type: decoded.resourceType,
@@ -292,13 +308,13 @@ async function findCloudinaryResource(id) {
     });
 }
 
-async function uploadToCloudinary(file) {
+async function uploadToCloudinary(file, folder) {
     const originalName = safeFileName(file.originalname || `archivo_${Date.now()}`);
     const mime = file.mimetype || 'application/octet-stream';
     const resourceType = resourceTypeFor(originalName, mime);
     const ext = resourceType === 'raw' ? path.extname(originalName) : '';
     const base = path.basename(originalName, path.extname(originalName)).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 100) || 'archivo';
-    const publicId = `${FILES_FOLDER}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${base}${ext}`;
+    const publicId = `${folder}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${base}${ext}`;
 
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({
@@ -316,12 +332,13 @@ async function uploadToCloudinary(file) {
 
 app.get('/files', async (req, res) => {
     const accessCode = String(req.query.accessCode || '');
-    if (!isTeamCode(accessCode)) return res.status(401).json({ error: 'Código de equipo incorrecto.' });
+    const group = groupAccess.resolve(accessCode);
+    if (!group) return res.status(401).json({ error: 'Código de equipo incorrecto.' });
     if (!requireCloudinary(res)) return;
     try {
-        const files = await listCloudinaryFiles();
+        const files = await listCloudinaryFiles(filesFolder(group));
         res.set('Cache-Control', 'no-store');
-        res.json({ ok: true, role: isAdminCode(accessCode) ? 'admin' : 'member', files });
+        res.json({ ok: true, role: group.role, files });
     } catch (error) {
         console.error('Cloudinary list:', error);
         res.status(502).json({ error: 'No se pudieron consultar los archivos en Cloudinary.' });
@@ -330,10 +347,11 @@ app.get('/files', async (req, res) => {
 
 app.get('/files/:id', async (req, res) => {
     const accessCode = String(req.query.accessCode || '');
-    if (!isTeamCode(accessCode)) return res.status(401).json({ error: 'Código de equipo incorrecto.' });
+    const group = groupAccess.resolve(accessCode);
+    if (!group) return res.status(401).json({ error: 'Código de equipo incorrecto.' });
     if (!requireCloudinary(res)) return;
     try {
-        const resource = await findCloudinaryResource(req.params.id);
+        const resource = await findCloudinaryResource(req.params.id, filesFolder(group));
         if (!resource?.secure_url) return res.status(404).json({ error: 'Archivo no encontrado.' });
         res.set('Cache-Control', 'no-store');
         res.redirect(302, resource.secure_url);
@@ -348,11 +366,12 @@ app.post('/files', (req, res) => {
     upload.single('file')(req, res, async err => {
         if (err) return res.status(400).json({ error: err.message || 'No se pudo recibir el archivo.' });
         const accessCode = String(req.body?.accessCode || '');
-        if (!isAdminCode(accessCode)) return res.status(403).json({ error: 'Solo el administrador puede subir archivos.' });
+        const group = groupAccess.resolve(accessCode);
+        if (group?.role !== 'admin') return res.status(403).json({ error: 'Solo el administrador puede subir archivos.' });
         if (!requireCloudinary(res)) return;
         if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
         try {
-            const uploaded = await uploadToCloudinary(req.file);
+            const uploaded = await uploadToCloudinary(req.file, filesFolder(group));
             res.json({ ok: true, file: publicFileInfo(uploaded) });
         } catch (error) {
             console.error('Cloudinary upload:', error);
@@ -363,10 +382,11 @@ app.post('/files', (req, res) => {
 
 app.delete('/files/:id', async (req, res) => {
     const accessCode = String(req.query.accessCode || '');
-    if (!isAdminCode(accessCode)) return res.status(403).json({ error: 'Solo el administrador puede eliminar archivos.' });
+    const group = groupAccess.resolve(accessCode);
+    if (group?.role !== 'admin') return res.status(403).json({ error: 'Solo el administrador puede eliminar archivos.' });
     if (!requireCloudinary(res)) return;
     try {
-        const decoded = decodeAssetId(req.params.id);
+        const decoded = decodeAssetId(req.params.id, filesFolder(group));
         if (!decoded) return res.status(400).json({ error: 'Identificador de archivo inválido.' });
         const result = await cloudinary.uploader.destroy(decoded.publicId, {
             resource_type: decoded.resourceType,
@@ -386,10 +406,9 @@ app.delete('/files/:id', async (req, res) => {
 app.use('/token', createTokenRouter({
     roomApi: api.room, allowedRooms, maxParticipants: MAX_PARTICIPANTS,
     livekitUrl: LIVEKIT_URL, apiKey: process.env.LIVEKIT_API_KEY, apiSecret: process.env.LIVEKIT_API_SECRET,
-    isTeamCode, isAdminCode, issueAttendanceToken: attendance.issueToken
+    resolveGroup: groupAccess.resolve, issueAttendanceToken: attendance.issueToken
 }));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Radio Equipo token server escuchando en http://0.0.0.0:${PORT}`);
 });
-

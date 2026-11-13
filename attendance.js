@@ -3,7 +3,7 @@ import { createFileStore, attendanceIdentity as identity } from './attendance-st
 import express from 'express';
 
 // One server process owns this store. Mount ATTENDANCE_DIR on a persistent disk.
-export function createAttendance({ directory, store, secret, now = () => new Date() }) {
+export function createAttendance({ directory, store, secret, groupStorage = () => null, now = () => new Date() }) {
     const router = express.Router();
     const storage = store || (directory ? createFileStore(directory) : null);
     const key = secret || crypto.randomBytes(32);
@@ -11,8 +11,8 @@ export function createAttendance({ directory, store, secret, now = () => new Dat
         timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit'
     }).format(now());
     const sign = value => crypto.createHmac('sha256', key).update(value).digest('base64url');
-    function issueToken(name, role) {
-        const body = Buffer.from(JSON.stringify({ name, role, expires: now().getTime() + 24 * 3600000 })).toString('base64url');
+    function issueToken(name, role, group = 'principal') {
+        const body = Buffer.from(JSON.stringify({ name, role, group, expires: now().getTime() + 24 * 3600000 })).toString('base64url');
         return `${body}.${sign(body)}`;
     }
     router.use(express.json({ limit: '8kb' }));
@@ -28,7 +28,9 @@ export function createAttendance({ directory, store, secret, now = () => new Dat
         } catch {
             return res.status(401).json({ error: 'Vuelve a conectar BENM para renovar el acceso a asistencia.' });
         }
-        if (!storage) return res.status(503).json({ error: 'El administrador debe configurar el almacenamiento persistente de asistencia.' });
+        const group = req.attendanceSession.group ?? 'principal';
+        req.attendanceStorage = group === 'principal' ? storage : groupStorage(group);
+        if (!req.attendanceStorage) return res.status(503).json({ error: 'El administrador debe configurar el almacenamiento persistente de asistencia.' });
         next();
     });
     function dateParam(value) {
@@ -41,7 +43,7 @@ export function createAttendance({ directory, store, secret, now = () => new Dat
         if (!date) return res.status(400).json({ error: 'Fecha inválida o futura.' });
         try {
             const session = req.attendanceSession;
-            const records = await storage.list(date);
+            const records = await req.attendanceStorage.list(date);
             res.json({ date, today: today(), role: session.role, records });
         } catch { res.status(503).json({ error: 'No se pudo leer la asistencia. Intenta nuevamente.' }); }
     });
@@ -53,7 +55,7 @@ export function createAttendance({ directory, store, secret, now = () => new Dat
         if (session.role !== 'admin' && (date !== today() || identity(name) !== identity(session.name))) return res.status(403).json({ error: 'Solo puedes marcar tu propia asistencia de hoy.' });
         try {
             const record = { name, date, markedAt: now().toISOString(), markedBy: session.name, source: session.role === 'admin' ? 'admin' : 'member' };
-            const result = await storage.mark(record);
+            const result = await req.attendanceStorage.mark(record);
             res.status(result.duplicate ? 200 : 201).json({ ok: true, ...result });
         } catch { res.status(503).json({ error: 'No se pudo guardar la asistencia. No se registró la confirmación; intenta nuevamente.' }); }
     });
